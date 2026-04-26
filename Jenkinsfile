@@ -2,42 +2,37 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = "sharu0703/app-image"
+        // Your Docker Hub Username/Repository
+        DOCKER_REPO = "sharu0703/app-image"
     }
 
     stages {
-
         stage('Build Docker Image') {
             steps {
-                bat 'docker build -t sharu0703/app-image:latest .'
+                // Building the image locally
+                bat 'docker build -t %DOCKER_REPO%:latest .'
             }
         }
 
-        stage('Login to Docker Hub') {
+        stage('Login and Push') {
             steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'dockerhub-creds1',
-                    usernameVariable: 'DOCKER_USER',
-                    passwordVariable: 'DOCKER_PASS'
-                )]) {
-                    bat 'echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin'
+                script {
+                    // This block handles the login and the push automatically
+                    // 'dockerhub-creds1' must match the ID in Jenkins Credentials Manager
+                    docker.withRegistry('https://index.docker.io/v1/', 'dockerhub-creds1') {
+                        docker.image("${DOCKER_REPO}:latest").push()
+                    }
                 }
-            }
-        }
-
-        stage('Push Docker Image') {
-            steps {
-                bat 'docker push sharu0703/app-image:latest'
             }
         }
     }
 
     post {
         success {
-            echo 'Pipeline Success'
+            echo 'Pipeline Success: Image pushed to Docker Hub'
         }
         failure {
-            echo 'Pipeline Failed'
+            echo 'Pipeline Failed: Check credentials or Docker Hub status'
         }
     }
 }
