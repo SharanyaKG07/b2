@@ -1,0 +1,43 @@
+pipeline {
+    agent any
+
+    environment {
+        DOCKER_IMAGE = "sharu0703/app-image"
+    }
+
+    stages {
+
+        stage('Build Docker Image') {
+            steps {
+                bat 'docker build -t sharu0703/app-image:latest .'
+            }
+        }
+
+        stage('Login to Docker Hub') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-creds',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    bat 'echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin'
+                }
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                bat 'docker push sharu0703/app-image:latest'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Pipeline Success'
+        }
+        failure {
+            echo 'Pipeline Failed'
+        }
+    }
+}
